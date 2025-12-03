@@ -70,14 +70,32 @@ def create_notification_property_setters():
 		"Data"
 	)
 	
-	# We also want to hide Subject if it's not used, but let's check if we want to keep it.
-	# Slack keeps it. Let's keep it for now to avoid confusion, or hide it if strictly following "relevant info".
-	# If we hide it, we must ensure it's not mandatory.
-	# Subject mandatory_depends_on: eval: in_list(['Email', 'Slack', 'System Notification'], doc.channel)
-	# It already excludes Google Chat by default (since it's not in the list).
-	# Subject depends_on: eval: in_list(['Email', 'Slack', 'System Notification'], doc.channel)
-	# It already excludes Google Chat by default.
-	# So Subject will be HIDDEN automatically for Google Chat. This is good.
+	# Hide attachment section for Google Chat (webhooks don't support file attachments)
+	make_property_setter(
+		"Notification",
+		"column_break_25",
+		"depends_on",
+		'eval:doc.channel!=="Google Chat"',
+		"Data"
+	)
+	
+	# Hide attach_print field for Google Chat
+	make_property_setter(
+		"Notification",
+		"attach_print",
+		"depends_on",
+		'eval:doc.channel!=="Google Chat"',
+		"Data"
+	)
+	
+	# Hide attach_files field for Google Chat
+	make_property_setter(
+		"Notification",
+		"attach_files",
+		"depends_on",
+		'eval:doc.channel!=="Google Chat"',
+		"Data"
+	)
 
 
 def update_notification_channel_options():
