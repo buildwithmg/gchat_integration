@@ -240,7 +240,10 @@ doctype_js = {
 
 # Migrate
 # -------
-after_migrate = "gchat_integration.gchat_integration.install.setup_notification_extension"
+after_migrate = [
+    "gchat_integration.gchat_integration.install.setup_notification_extension",
+    "gchat_integration.gchat_integration.setup_workspace.setup_integrations_workspace"
+]
 
 # App startup - Load notification extension on every request
 # This ensures Google Chat functionality is available
