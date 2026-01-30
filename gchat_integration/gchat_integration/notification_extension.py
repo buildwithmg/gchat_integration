@@ -47,7 +47,21 @@ def extend_notification():
 
 		# Check Google Chat Type
 		if self.google_chat_type == "Chatbot":
-			frappe.log_error(f"Google Chat Chatbot integration is not yet implemented for notification: {self.name}", "Google Chat Integration")
+			from gchat_integration.gchat_integration.api import send_google_chat_bot_message
+			
+			space_id = self.google_chat_space
+			if not space_id:
+				frappe.log_error(f"No Space ID configured for notification: {self.name}", "Google Chat Integration")
+				return
+
+			message = frappe.render_template(self.message, context)
+			
+			send_google_chat_bot_message(
+				space_id=space_id,
+				message=message,
+				reference_doctype=get_reference_doctype(doc),
+				reference_name=get_reference_name(doc),
+			)
 			return
 
 		webhook = self.google_chat_webhook

@@ -80,3 +80,59 @@ def setup_integrations_workspace():
         pass
     except Exception as e:
         frappe.log_error(f"Failed to setup integrations workspace: {str(e)}")
+    
+    # Also add Google Chat Settings
+    setup_google_chat_settings_link()
+
+
+def setup_google_chat_settings_link():
+    """Add Google Chat Settings to Integrations workspace."""
+    try:
+        workspace = frappe.get_doc("Workspace", "Integrations")
+        
+        # Check if Google Chat Settings link already exists
+        for link in workspace.links:
+            if link.label == "Google Chat Settings":
+                return  # Already exists
+        
+        # Find Google Settings position to insert after it
+        google_settings_idx = -1
+        for idx, link in enumerate(workspace.links):
+            if link.label == "Google Settings":
+                google_settings_idx = idx
+                break
+        
+        # Create new link
+        new_link = frappe.new_doc("Workspace Link")
+        new_link.label = "Google Chat Settings"
+        new_link.type = "Link"
+        new_link.link_type = "DocType"
+        new_link.link_to = "Google Chat Settings"
+        new_link.is_query_report = 0
+        
+        if google_settings_idx != -1:
+            workspace.links.insert(google_settings_idx + 1, new_link)
+        else:
+            # If Google Settings not found, add to beginning of Settings section
+            settings_idx = -1
+            for idx, link in enumerate(workspace.links):
+                if link.label == "Settings" and link.type == "Card Break":
+                    settings_idx = idx
+                    break
+            
+            if settings_idx != -1:
+                workspace.links.insert(settings_idx + 1, new_link)
+            else:
+                workspace.append("links", new_link)
+        
+        # Update idx
+        for i, link in enumerate(workspace.links):
+            link.idx = i + 1
+        
+        workspace.save()
+        frappe.db.commit()
+        
+    except frappe.DoesNotExistError:
+        pass
+    except Exception as e:
+        frappe.log_error(f"Failed to add Google Chat Settings to workspace: {str(e)}")

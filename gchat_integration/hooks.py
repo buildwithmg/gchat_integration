@@ -97,7 +97,9 @@ fixtures = [
 				"name",
 				"in",
 				[
-					"Notification-google_chat_webhook"
+					"Notification-google_chat_webhook",
+					"Notification-google_chat_space",
+					"Notification-google_chat_type"
 				]
 			]
 		]

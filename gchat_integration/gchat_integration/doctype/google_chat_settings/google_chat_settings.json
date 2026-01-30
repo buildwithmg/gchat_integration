@@ -1,0 +1,135 @@
+{
+    "actions": [],
+    "creation": "2025-12-04 16:30:00.000000",
+    "doctype": "DocType",
+    "engine": "InnoDB",
+    "field_order": [
+        "setup_instructions",
+        "bot_settings_section",
+        "enable_bot",
+        "bot_name",
+        "column_break_1",
+        "http_endpoint_url",
+        "credentials_section",
+        "service_account_creds",
+        "verification_token",
+        "features_section",
+        "enable_workflow_approvals",
+        "column_break_2",
+        "enable_system_notifications",
+        "default_notification_space"
+    ],
+    "fields": [
+        {
+            "fieldname": "setup_instructions",
+            "fieldtype": "HTML",
+            "label": "Setup Instructions",
+            "options": "<div class='alert alert-info'><h4>How to Set Up Google Chat Integration</h4><ol><li><strong>Create a Google Cloud Project:</strong> Go to <a href='https://console.cloud.google.com' target='_blank'>Google Cloud Console</a> and create a new project.</li><li><strong>Enable Google Chat API:</strong> In your project, navigate to APIs & Services > Library and enable the 'Google Chat API'.</li><li><strong>Create Service Account:</strong><ul><li>Go to IAM & Admin > Service Accounts</li><li>Click 'Create Service Account'</li><li>Give it a name (e.g., 'google-chat-bot')</li><li><strong>Grant Permissions:</strong> Add the following roles:<ul><li><strong>Google Chat Bot</strong> (or <code>roles/chat.owner</code>) - Required for sending messages</li><li>Alternatively, you can skip role assignment here and grant domain-wide delegation</li></ul></li><li>Click 'Done'</li><li>Click on the created service account</li><li>Go to 'Keys' tab > Add Key > Create New Key</li><li>Choose JSON format and download the key file</li></ul></li><li><strong>Configure Google Chat App:</strong><ul><li>Go to Google Chat API > Configuration</li><li>Set App name and description</li><li>Set Avatar URL (optional)</li><li>Set HTTP endpoint URL to: <code id='endpoint-url'></code> <button class='btn btn-xs btn-default' onclick='navigator.clipboard.writeText(document.getElementById(\"endpoint-url\").innerText)'>Copy</button></li><li><strong>Connection Settings:</strong><ul><li>App URL: Use the HTTP endpoint URL above</li><li>Enable 'Interactive features' if using workflow approvals</li></ul></li><li><strong>Functionality:</strong><ul><li>Check 'Receive 1:1 messages' if you want direct messages</li><li>Check 'Join spaces and group conversations' to allow adding bot to spaces</li></ul></li><li><strong>Permissions:</strong><ul><li>Choose who can install: 'Specific people and groups' or 'Everyone in [your domain]'</li><li>Add specific users/groups if needed</li></ul></li><li><strong>Visibility:</strong> Choose 'Make this Chat app available to specific people and groups in [your domain]' or make it available to everyone</li></ul></li><li><strong>Required API Scopes:</strong> The service account needs the following OAuth scope:<ul><li><code>https://www.googleapis.com/auth/chat.bot</code> - For sending messages as the bot</li></ul></li><li><strong>Paste Service Account JSON:</strong> Copy the entire content of your downloaded JSON key file and paste it in the 'Service Account JSON' field below.</li></ol><p class='text-muted'><strong>Note:</strong> After configuration, you may need to wait a few minutes for the changes to propagate. Test by adding the bot to a space and sending a message.</p></div><script>document.getElementById('endpoint-url').innerText = window.location.origin + '/api/method/gchat_integration.api.handle_google_chat_event';</script>"
+        },
+        {
+            "fieldname": "bot_settings_section",
+            "fieldtype": "Section Break",
+            "label": "Bot Configuration"
+        },
+        {
+            "default": "0",
+            "fieldname": "enable_bot",
+            "fieldtype": "Check",
+            "label": "Enable Bot Integration"
+        },
+        {
+            "depends_on": "enable_bot",
+            "fieldname": "bot_name",
+            "fieldtype": "Data",
+            "label": "Bot Display Name"
+        },
+        {
+            "fieldname": "column_break_1",
+            "fieldtype": "Column Break"
+        },
+        {
+            "depends_on": "enable_bot",
+            "fieldname": "http_endpoint_url",
+            "fieldtype": "Data",
+            "label": "HTTP Endpoint URL",
+            "read_only": 1,
+            "default": "/api/method/gchat_integration.api.handle_google_chat_event"
+        },
+        {
+            "fieldname": "credentials_section",
+            "fieldtype": "Section Break",
+            "label": "Credentials"
+        },
+        {
+            "depends_on": "enable_bot",
+            "description": "Paste the entire content of your Google Cloud Service Account JSON key file here. This file contains your project_id, private_key, client_email, and other necessary credentials.",
+            "fieldname": "service_account_creds",
+            "fieldtype": "Code",
+            "label": "Service Account JSON",
+            "mandatory_depends_on": "enable_bot",
+            "options": "JSON"
+        },
+        {
+            "depends_on": "enable_bot",
+            "description": "Optional: Verification token from Google Chat App configuration. Used to verify incoming requests.",
+            "fieldname": "verification_token",
+            "fieldtype": "Data",
+            "label": "Verification Token"
+        },
+        {
+            "fieldname": "features_section",
+            "fieldtype": "Section Break",
+            "label": "Features"
+        },
+        {
+            "default": "0",
+            "depends_on": "enable_bot",
+            "description": "Enable interactive workflow approval cards with Approve/Reject buttons",
+            "fieldname": "enable_workflow_approvals",
+            "fieldtype": "Check",
+            "label": "Enable Workflow Approvals"
+        },
+        {
+            "fieldname": "column_break_2",
+            "fieldtype": "Column Break"
+        },
+        {
+            "default": "0",
+            "depends_on": "enable_bot",
+            "description": "Enable sending system notifications to Google Chat",
+            "fieldname": "enable_system_notifications",
+            "fieldtype": "Check",
+            "label": "Enable System Notifications"
+        },
+        {
+            "depends_on": "eval:doc.enable_system_notifications",
+            "description": "Default Space ID (e.g., spaces/AAAAxxxx) to send system notifications to when not specified in the notification.",
+            "fieldname": "default_notification_space",
+            "fieldtype": "Data",
+            "label": "Default Notification Space"
+        }
+    ],
+    "issingle": 1,
+    "links": [],
+    "modified": "2025-12-04 16:30:00.000000",
+    "modified_by": "Administrator",
+    "module": "Gchat Integration",
+    "name": "Google Chat Settings",
+    "owner": "Administrator",
+    "permissions": [
+        {
+            "create": 1,
+            "delete": 1,
+            "email": 1,
+            "print": 1,
+            "read": 1,
+            "role": "System Manager",
+            "share": 1,
+            "write": 1
+        }
+    ],
+    "sort_field": "modified",
+    "sort_order": "DESC",
+    "states": [],
+    "track_changes": 1
+}
