@@ -27,7 +27,7 @@ def create_notification_custom_fields():
 				"fieldname": "google_chat_type",
 				"label": "Google Chat Type",
 				"fieldtype": "Select",
-				"options": "Webhook\nChatbot",
+				"options": "Webhook\nChatbot\nDirect Message",
 				"default": "Webhook",
 				"insert_after": "channel",
 				"depends_on": 'eval:doc.channel=="Google Chat"',
@@ -42,23 +42,32 @@ def create_notification_custom_fields():
 				"depends_on": 'eval:doc.channel=="Google Chat" && doc.google_chat_type=="Webhook"',
 				"description": "Select the Google Chat Webhook to send notifications to",
 				"mandatory_depends_on": 'eval:doc.channel=="Google Chat" && doc.google_chat_type=="Webhook"'
+			},
+			{
+				"fieldname": "google_chat_space",
+				"label": "Google Chat Space ID",
+				"fieldtype": "Data",
+				"insert_after": "google_chat_webhook",
+				"depends_on": 'eval:doc.channel=="Google Chat" && doc.google_chat_type=="Chatbot"',
+				"description": "Space ID (e.g., spaces/AAAAxxxx) where the bot will send messages",
+				"mandatory_depends_on": 'eval:doc.channel=="Google Chat" && doc.google_chat_type=="Chatbot"'
 			}
 		]
 	}
 	create_custom_fields(custom_fields, update=True)
 
 
+
 def create_notification_property_setters():
 	"""Create Property Setters to hide irrelevant fields for Google Chat."""
-	# Hide Recipients section and table for Google Chat
-	# Current depends_on: eval:doc.channel !="Slack"
-	# New depends_on: eval:doc.channel !="Slack" && doc.channel !="Google Chat"
+	# Show Recipients section only for Direct Message type in Google Chat
+	# For other Google Chat types (Webhook, Chatbot), hide recipients similar to Slack
 	
 	make_property_setter(
 		"Notification",
 		"column_break_5",
 		"depends_on",
-		'eval:doc.channel !="Slack" && doc.channel !="Google Chat"',
+		'eval:doc.channel !="Slack" && (doc.channel !="Google Chat" || doc.google_chat_type=="Direct Message")',
 		"Data"
 	)
 	
@@ -66,7 +75,7 @@ def create_notification_property_setters():
 		"Notification",
 		"recipients",
 		"mandatory_depends_on",
-		'eval:doc.channel!=="Slack" && doc.channel!=="Google Chat" && !doc.send_to_all_assignees',
+		'eval:doc.channel!=="Slack" && (doc.channel!=="Google Chat" || doc.google_chat_type==="Direct Message") && !doc.send_to_all_assignees',
 		"Data"
 	)
 	

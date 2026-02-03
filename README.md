@@ -5,11 +5,12 @@ A custom Frappe app that integrates Google Chat webhooks with ERPNext notificati
 ## Features
 
 - 🔔 **Webhook Integration**: Send ERPNext notifications to Google Chat spaces via webhooks
+- 💬 **Direct Message Notifications**: Send personalized DM notifications to users based on their email addresses
 - 📝 **HTML Support**: Automatically converts HTML formatting (headers, lists, bold, etc.) to Google Chat format
 - 📎 **Attachment Links**: Includes links to print formats and file attachments in notifications
 - 🎨 **Custom Message Examples**: Provides Google Chat-specific message formatting examples
 - 🔧 **Flexible Configuration**: Hide/show document links, configure webhook per notification
-- 🚀 **Future Ready**: Designed with chatbot integration in mind (coming soon)
+- 🤖 **Chatbot Integration**: Send messages via Google Chat Bot API with interactive cards
 
 ## Installation
 
@@ -52,10 +53,58 @@ bench --site your-site-name migrate
 1. Go to **Desk → Settings → Notification**
 2. Create a new Notification or edit an existing one
 3. Set **Channel** to **Google Chat**
-4. **Google Chat Type**: Select **Webhook**
-5. **Google Chat Webhook**: Select the webhook you created
+4. **Google Chat Type**: Select **Webhook**, **Chatbot**, or **Direct Message**
+5. Configure based on type:
+   - **Webhook**: Select the webhook you created
+   - **Chatbot**: Enter the Space ID
+   - **Direct Message**: Add recipients (users will receive individual DMs)
 6. Configure your message with Jinja templating and HTML formatting
 7. **Save** and enable the notification
+
+### 4. Direct Message Setup (Optional)
+
+To send direct messages to users via Google Chat:
+
+#### Prerequisites
+
+- Google Workspace domain
+- Service Account with domain-wide delegation
+- Google Chat Bot app configured
+
+#### Setup Steps
+
+1. **Create a Service Account**:
+   - Go to [Google Cloud Console](https://console.cloud.google.com)
+   - Create or select a project
+   - Navigate to IAM & Admin → Service Accounts
+   - Create a new service account
+   - Download the JSON key file
+
+2. **Enable Domain-Wide Delegation**:
+   - Go to [Google Admin Console](https://admin.google.com)
+   - Navigate to Security → Access and data control → API controls
+   - Click "Manage Domain-wide Delegation"
+   - Add your Service Account's Client ID
+   - Grant the following scopes:
+     - `https://www.googleapis.com/auth/chat.spaces`
+     - `https://www.googleapis.com/auth/chat.bot`
+
+3. **Configure Google Chat Settings**:
+   - Go to **Desk → Google Chat Settings**
+   - Enable **Bot Integration**
+   - Paste your Service Account JSON in the **Service Account JSON** field
+   - Configure your bot details
+   - Save
+
+4. **Create Direct Message Notification**:
+   - Create a new Notification
+   - Set Channel to **Google Chat**
+   - Set Google Chat Type to **Direct Message**
+   - Add recipients (users from your ERPNext system)
+   - Configure your message
+   - Save and test
+
+**Important**: Recipients must have valid Google Workspace email addresses that match their ERPNext user emails.
 
 ## Message Formatting
 
@@ -159,10 +208,12 @@ Contributions are welcome! Please:
 
 ## Roadmap
 
-- [ ] Google Chat Chatbot integration (direct user messaging)
+- [x] Google Chat Chatbot integration (direct user messaging)
+- [x] Direct Message notifications via email
 - [ ] Rich card formatting options
 - [ ] Interactive buttons and forms
 - [ ] Thread support for related notifications
+- [ ] Caching DM space IDs for performance
 
 ## License
 

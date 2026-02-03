@@ -170,13 +170,11 @@ doctype_js = {
 # ---------------
 # Hook on document methods and events
 
-# doc_events = {
-# 	"*": {
-# 		"on_update": "method",
-# 		"on_cancel": "method",
-# 		"on_trash": "method"
-# 	}
-# }
+doc_events = {
+	"Workflow Action": {
+		"after_insert": "gchat_integration.gchat_integration.workflow_integration.notify_workflow_action"
+	}
+}
 
 # Scheduled Tasks
 # ---------------
@@ -246,10 +244,6 @@ after_migrate = [
     "gchat_integration.gchat_integration.install.setup_notification_extension",
     "gchat_integration.gchat_integration.setup_workspace.setup_integrations_workspace"
 ]
-
-# App startup - Load notification extension on every request
-# This ensures Google Chat functionality is available
-app_startup = "gchat_integration.gchat_integration.notification_extension.extend_notification"
 
 
 

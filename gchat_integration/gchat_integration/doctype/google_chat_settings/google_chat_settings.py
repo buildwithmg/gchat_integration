@@ -51,6 +51,29 @@ def get_settings():
 	return frappe.get_cached_doc("Google Chat Settings", "Google Chat Settings")
 
 
+def get_service_account_json():
+	"""
+	Get parsed service account JSON from settings.
+	
+	Returns:
+		dict: Parsed service account credentials
+	
+	Raises:
+		frappe.ValidationError: If credentials are not configured or invalid
+	"""
+	import json
+	
+	settings = get_settings()
+	
+	if not settings.service_account_creds:
+		frappe.throw("Service Account credentials not configured in Google Chat Settings")
+	
+	try:
+		return json.loads(settings.service_account_creds)
+	except json.JSONDecodeError:
+		frappe.throw("Invalid Service Account credentials format")
+
+
 def is_bot_enabled():
 	"""Check if bot integration is enabled."""
 	try:

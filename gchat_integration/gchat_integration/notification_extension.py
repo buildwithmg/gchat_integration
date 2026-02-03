@@ -63,6 +63,81 @@ def extend_notification():
 				reference_name=get_reference_name(doc),
 			)
 			return
+		
+		elif self.google_chat_type == "Direct Message":
+			from gchat_integration.gchat_integration.gchat_dm_sender import send_dm_to_multiple_users
+			from gchat_integration.gchat_integration.doctype.google_chat_webhook.google_chat_webhook import (
+				convert_html_to_gchat_text,
+			)
+			from frappe.utils import get_url_to_form
+			
+			frappe.log_error(f"Trace: Google Chat DM Processing {self.name}", "GChat DM Trace")
+			
+			# Get recipient email addresses
+			recipient_emails = self.get_recipient_emails(doc, context)
+			
+			frappe.log_error(f"Trace: Google Chat DM Recipients: {recipient_emails}", "GChat DM Trace")
+			
+			if not recipient_emails:
+				frappe.log_error(
+					f"No valid recipient emails found for notification: {self.name}. Check if recipients have email addresses set.",
+					"Google Chat DM - No Recipients"
+				)
+				return
+			
+			# Render and format message
+			message = frappe.render_template(self.message, context)
+			formatted_message = convert_html_to_gchat_text(message)
+			
+			# Create minimal card with document link (matching webhook style)
+			reference_doctype = get_reference_doctype(doc)
+			reference_name = get_reference_name(doc)
+			doc_url = get_url_to_form(reference_doctype, reference_name)
+			
+			card = [{
+				"cardId": "document-link",
+				"card": {
+					"sections": [
+						{
+							"widgets": [
+								{
+									"buttonList": {
+										"buttons": [
+											{
+												"text": reference_name,
+												"onClick": {
+													"openLink": {
+														"url": doc_url
+													}
+												}
+											}
+										]
+									}
+								}
+							]
+						}
+					]
+				}
+			}]
+			
+			# Send DM to all recipients
+			frappe.log_error(f"Trace: Google Chat DM Sending to {len(recipient_emails)} recipients", "GChat DM Trace")
+			
+			results = send_dm_to_multiple_users(
+				user_emails=recipient_emails,
+				message_text=formatted_message,
+				card=card
+			)
+			
+			# Log results
+			if results["failed"]:
+				frappe.log_error(
+					f"Failed to send DM to: {', '.join(results['failed'])}",
+					"Google Chat DM - Partial Failure"
+				)
+			
+			frappe.log_error(f"Trace: Google Chat DM Send completed. Success: {len(results['success'])}, Failed: {len(results['failed'])}", "GChat DM Trace")
+			return
 
 		webhook = self.google_chat_webhook
 		frappe.logger().info(f"Sending Google Chat message using webhook: {webhook}")
@@ -80,10 +155,34 @@ def extend_notification():
 			reference_doctype=get_reference_doctype(doc),
 			reference_name=get_reference_name(doc),
 		)
+	
+	def get_recipient_emails(self, doc, context):
+		"""
+		Extract email addresses from notification recipients.
+		Compatible with Frappe v16 native API.
+		
+		Args:
+			doc: The document that triggered the notification
+			context: Notification context
+		
+		Returns:
+			list: List of email addresses
+		"""
+		recipients, cc, bcc = self.get_list_of_recipients(doc, context)
+		emails = set(recipients)
+		emails.update(cc)
+		emails.update(bcc)
+
+		# Filter out duplicates and invalid emails
+		return [e for e in emails if e and "@" in e]
+
+
 
 	# Monkey patch the methods
 	Notification.send_notification_by_channel = send_notification_by_channel_extended
 	Notification.send_a_google_chat_msg = send_a_google_chat_msg
+	Notification.get_recipient_emails = get_recipient_emails
+
 
 
 def get_notification_context():
