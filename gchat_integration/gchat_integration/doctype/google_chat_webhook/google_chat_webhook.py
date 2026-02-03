@@ -146,17 +146,12 @@ def send_google_chat_message(webhook_url, message, reference_doctype, reference_
 		data = {"text": formatted_message}
 
 	try:
-		frappe.logger().debug(f"Sending Google Chat message to: {gchat_url[:50]}...")
-		frappe.logger().debug(f"Payload: {json.dumps(data)}")
-		
 		r = requests.post(gchat_url, json=data, headers={"Content-Type": "application/json; charset=UTF-8"})
 
 		if not r.ok:
-			error_msg = error_messages.get(r.status_code, f"{r.status_code}: {r.text}")
 			frappe.log_error(f"Status: {r.status_code}\nResponse: {r.text}\nPayload: {json.dumps(data)}", _("Google Chat Webhook Error"))
 			return "error"
 
-		frappe.logger().info(f"Google Chat message sent successfully to webhook: {webhook_url}")
 		return "success"
 	except Exception as e:
 		frappe.log_error(f"Exception: {str(e)}\nWebhook: {webhook_url}\nPayload: {json.dumps(data)}", _("Google Chat Webhook Error"))

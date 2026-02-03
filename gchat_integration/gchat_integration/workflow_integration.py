@@ -93,11 +93,17 @@ def notify_workflow_action(doc, method=None):
 				title=doc_title
 			)
 
-			# Send DM
+			# Send DM in background
 			# We send message_text="" here because the card already contains the info.
 			# This avoids the redundant link text before the buttons.
-			frappe.logger().info(f"Sending Workflow DM to {user_id} ({user_email}) for {doc.reference_name}")
-			send_dm_to_user(user_email, message_text="", card=card)
+			from frappe.utils.background_jobs import enqueue
+			enqueue(
+				send_dm_to_user,
+				user_email=user_email,
+				message_text="",
+				card=card,
+				queue="short"
+			)
 
 	except Exception as e:
 		frappe.log_error(f"Failed to send Google Chat Workflow Notification: {str(e)}", "Google Chat Integration")

@@ -43,7 +43,7 @@ def extend_notification():
 			get_reference_doctype,
 			get_reference_name,
 		)
-		from frappe.utils import get_url
+		from frappe.utils.background_jobs import enqueue
 
 		# Check Google Chat Type
 		if self.google_chat_type == "Chatbot":
@@ -51,16 +51,17 @@ def extend_notification():
 			
 			space_id = self.google_chat_space
 			if not space_id:
-				frappe.log_error(f"No Space ID configured for notification: {self.name}", "Google Chat Integration")
 				return
 
 			message = frappe.render_template(self.message, context)
 			
-			send_google_chat_bot_message(
+			enqueue(
+				send_google_chat_bot_message,
 				space_id=space_id,
 				message=message,
 				reference_doctype=get_reference_doctype(doc),
 				reference_name=get_reference_name(doc),
+				queue="short"
 			)
 			return
 		
@@ -71,18 +72,10 @@ def extend_notification():
 			)
 			from frappe.utils import get_url_to_form
 			
-			frappe.log_error(f"Trace: Google Chat DM Processing {self.name}", "GChat DM Trace")
-			
 			# Get recipient email addresses
 			recipient_emails = self.get_recipient_emails(doc, context)
 			
-			frappe.log_error(f"Trace: Google Chat DM Recipients: {recipient_emails}", "GChat DM Trace")
-			
 			if not recipient_emails:
-				frappe.log_error(
-					f"No valid recipient emails found for notification: {self.name}. Check if recipients have email addresses set.",
-					"Google Chat DM - No Recipients"
-				)
 				return
 			
 			# Render and format message
@@ -120,40 +113,30 @@ def extend_notification():
 				}
 			}]
 			
-			# Send DM to all recipients
-			frappe.log_error(f"Trace: Google Chat DM Sending to {len(recipient_emails)} recipients", "GChat DM Trace")
-			
-			results = send_dm_to_multiple_users(
+			# Send DM to all recipients in background
+			enqueue(
+				send_dm_to_multiple_users,
 				user_emails=recipient_emails,
 				message_text=formatted_message,
-				card=card
+				card=card,
+				queue="short"
 			)
-			
-			# Log results
-			if results["failed"]:
-				frappe.log_error(
-					f"Failed to send DM to: {', '.join(results['failed'])}",
-					"Google Chat DM - Partial Failure"
-				)
-			
-			frappe.log_error(f"Trace: Google Chat DM Send completed. Success: {len(results['success'])}, Failed: {len(results['failed'])}", "GChat DM Trace")
 			return
 
 		webhook = self.google_chat_webhook
-		frappe.logger().info(f"Sending Google Chat message using webhook: {webhook}")
-		
 		if not webhook:
-			frappe.log_error(f"No webhook configured for notification: {self.name}", "Google Chat Integration")
 			return
 
 		# Prepare message
 		message = frappe.render_template(self.message, context)
 
-		send_google_chat_message(
+		enqueue(
+			send_google_chat_message,
 			webhook_url=webhook,
 			message=message,
 			reference_doctype=get_reference_doctype(doc),
 			reference_name=get_reference_name(doc),
+			queue="short"
 		)
 	
 	def get_recipient_emails(self, doc, context):
