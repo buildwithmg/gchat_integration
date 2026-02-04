@@ -173,6 +173,9 @@ doctype_js = {
 doc_events = {
 	"Workflow Action": {
 		"after_insert": "gchat_integration.gchat_integration.workflow_integration.notify_workflow_action"
+	},
+	"Comment": {
+		"after_insert": "gchat_integration.gchat_integration.comment_integration.notify_comment"
 	}
 }
 
