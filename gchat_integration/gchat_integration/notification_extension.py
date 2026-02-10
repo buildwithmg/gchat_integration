@@ -66,9 +66,9 @@ def extend_notification():
 			return
 		
 		elif self.google_chat_type == "Direct Message":
-			from gchat_integration.gchat_integration.gchat_dm_sender import send_dm_to_multiple_users
-			from gchat_integration.gchat_integration.doctype.google_chat_webhook.google_chat_webhook import (
-				convert_html_to_gchat_text,
+			from gchat_integration.gchat_integration.gchat_dm_sender import (
+				send_dm_to_multiple_users,
+				create_notification_card,
 			)
 			from frappe.utils import get_url_to_form
 			
@@ -78,46 +78,31 @@ def extend_notification():
 			if not recipient_emails:
 				return
 			
-			# Render and format message
+			# Render message and subject
 			message = frappe.render_template(self.message, context)
-			formatted_message = convert_html_to_gchat_text(message)
+			subject = frappe.render_template(self.subject, context)
 			
-			# Create minimal card with document link (matching webhook style)
 			reference_doctype = get_reference_doctype(doc)
 			reference_name = get_reference_name(doc)
 			doc_url = get_url_to_form(reference_doctype, reference_name)
 			
-			card = [{
-				"cardId": "document-link",
-				"card": {
-					"sections": [
-						{
-							"widgets": [
-								{
-									"buttonList": {
-										"buttons": [
-											{
-												"text": reference_name,
-												"onClick": {
-													"openLink": {
-														"url": doc_url
-													}
-												}
-											}
-										]
-									}
-								}
-							]
-						}
-					]
-				}
-			}]
+			# Create card using the style helper
+			# Subject as Header, Message as Body
+			card = create_notification_card(
+				title=subject,
+				subtitle=f"{reference_doctype}: {reference_name}",
+				message=message,
+				buttons=[{
+					"text": _("View Document"),
+					"url": doc_url
+				}]
+			)
 			
 			# Send DM to all recipients in background
 			enqueue(
 				send_dm_to_multiple_users,
 				user_emails=recipient_emails,
-				message_text=formatted_message,
+				message_text="", # Content is in the card
 				card=card,
 				queue="short"
 			)
