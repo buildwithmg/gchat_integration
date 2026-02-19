@@ -38,9 +38,6 @@ def notify_comment(doc, method=None):
 					recipients.add(mention)
 		
 		# Optionally notify document owner if they are not the one who commented
-		# For now, we'll only notify owner if no one else is mentioned 
-		# OR we can always notify the owner if they aren't the commenter.
-		# Let's check common logic: if it's a comment on their doc, they should know.
 		ref_doc_owner = frappe.db.get_value(doc.reference_doctype, doc.reference_name, "owner")
 		if ref_doc_owner and ref_doc_owner != frappe.session.user and "@" in ref_doc_owner:
 			recipients.add(ref_doc_owner)
@@ -50,7 +47,9 @@ def notify_comment(doc, method=None):
 
 		# Prepare details
 		from_user = get_fullname(doc.comment_email or doc.owner)
-		clean_content = strip_html(doc.content or "")
+		# Pass mentions for more accurate bolding
+		clean_content = clean_comment_content(doc.content or "", mentions=mentions)
+		
 		if len(clean_content) > 500:
 			clean_content = clean_content[:497] + "..."
 
@@ -88,3 +87,71 @@ def notify_comment(doc, method=None):
 
 	except Exception as e:
 		frappe.log_error(f"Failed to send Google Chat Comment Notification: {str(e)}", "Google Chat Integration")
+
+
+def clean_comment_content(content, mentions=None):
+	"""
+	Cleans HTML from comment content, specifically handling Quill mentions.
+	Bolds @mentions for Google Chat in a robust way.
+	"""
+	import re
+	from frappe.utils import strip_html, get_fullname
+	
+	if not content:
+		return ""
+	
+	# 1. Pre-cleaning malformed HTML fragments
+	# Remove attributes specifically (both double and single quoted)
+	content = re.sub(r'[a-z-]+=(["\'])[^\1]*?\1', '', content)
+	# Remove stray tag starts/ends that look like technical artifacts (e.g. Name" >)
+	content = re.sub(r'[^<>\n]*"[^>]*>', ' ', content)
+	content = re.sub(r'&nbsp;', ' ', content)
+	
+	# 2. Strip all remaining HTML tags
+	clean = strip_html(content)
+	
+	# 3. Bold Mentions using a placeholder system to avoid double-bolding
+	# Resolve names to bold from the mention list
+	names_to_bold = set()
+	if mentions:
+		for email in mentions:
+			full_name = get_fullname(email)
+			if full_name:
+				names_to_bold.add(full_name)
+			if "@" in email:
+				# Also bold the email prefix
+				names_to_bold.add(email.split("@")[0])
+
+	# Sort by length descending to match longest possible names first
+	sorted_names = sorted(list(names_to_bold), key=len, reverse=True)
+	
+	def bold_placeholder(text):
+		return f"__BC_START__{text}__BC_END__"
+
+	processed_text = clean
+	
+	# Pass A: Bold exactly the system-identified mentioned full names
+	# This avoids over-bolding subsequent capitalized words in the comment.
+	for name in sorted_names:
+		if name:
+			# Only match if NOT preceded by __BC_START__
+			# Use word boundary or punctuation boundary check
+			pattern = rf'(?<!__BC_START__)@{re.escape(name)}(?=\W|$)'
+			processed_text = re.sub(pattern, bold_placeholder(f"@{name}"), processed_text)
+	
+	# Pass B: Fallback for any remaining single-word @mentions
+	processed_text = re.sub(r'(?<!__BC_START__)(@[A-Za-z0-9._-]+)', lambda m: bold_placeholder(m.group(0)), processed_text)
+	
+	# Cleanup nested or redundant placeholders (Safety)
+	processed_text = processed_text.replace("__BC_START____BC_START__", "__BC_START__")
+	processed_text = processed_text.replace("__BC_END____BC_END__", "__BC_END__")
+	
+	# Final conversion to Google Chat stars
+	clean = processed_text.replace("__BC_START__", "*").replace("__BC_END__", "*")
+	
+	# 4. Final safety cleanup
+	# Remove any leftover corrupted tag fragments (stray > or ")
+	clean = re.sub(r'^[">\'\s]+', '', clean)
+	clean = re.sub(r'[">\'\s]+$', '', clean)
+	
+	return clean.strip()
