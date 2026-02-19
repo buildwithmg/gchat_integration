@@ -151,6 +151,48 @@ def extend_notification():
 	Notification.send_a_google_chat_msg = send_a_google_chat_msg
 	Notification.get_recipient_emails = get_recipient_emails
 
+	# Apply resilient verify_request to handle URL decoding issues (common with GChat and some email clients)
+	from frappe.utils import verified_command
+	
+	if not hasattr(verified_command, "_original_verify_request"):
+		verified_command._original_verify_request = verified_command.verify_request
+		
+		def resilient_verify_request():
+			"""
+			Extended verify_request that handles partially decoded characters 
+			(like '@' or ':') in the query string by re-encoding them 
+			if the initial verification fails.
+			"""
+			import hmac
+			from urllib.parse import urlencode, parse_qsl
+			from frappe.utils.verified_command import _sign_message
+			
+			query_string = frappe.safe_decode(
+				frappe.local.flags.signed_query_string or getattr(frappe.request, "query_string", None)
+			)
+			
+			signature_string = "&_signature="
+			if signature_string in query_string:
+				params, given_signature = query_string.split(signature_string)
+				
+				# 1. Try original (as-is)
+				if hmac.compare_digest(given_signature, _sign_message(params)):
+					return True
+				
+				# 2. Try re-encoded (handles cases where browser/client decodes some chars)
+				# parse_qsl handles '+' and '%20' consistently
+				parsed_params = parse_qsl(params, keep_blank_values=True)
+				reencoded_params = urlencode(parsed_params)
+				
+				if hmac.compare_digest(given_signature, _sign_message(reencoded_params)):
+					return True
+					
+			# 3. Fallback to original (which handles the error response)
+			return verified_command._original_verify_request()
+		
+		# Patch the module function
+		verified_command.verify_request = resilient_verify_request
+
 
 
 def get_notification_context():

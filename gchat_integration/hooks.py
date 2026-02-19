@@ -238,7 +238,7 @@ doc_events = {
 
 # Request Events
 # ----------------
-# before_request = ["gchat_integration.utils.before_request"]
+before_request = ["gchat_integration.gchat_integration.notification_extension.extend_notification"]
 # after_request = ["gchat_integration.utils.after_request"]
 
 # Migrate
