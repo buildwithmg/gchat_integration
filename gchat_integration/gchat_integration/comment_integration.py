@@ -48,7 +48,7 @@ def notify_comment(doc, method=None):
 		# Prepare details
 		from_user = get_fullname(doc.comment_email or doc.owner)
 		# Pass mentions for more accurate bolding
-		clean_content = clean_comment_content(doc.content or "", mentions=mentions)
+		clean_content = clean_comment_content(doc.content or "", mentions=list(recipients))
 		
 		if len(clean_content) > 500:
 			clean_content = clean_content[:497] + "..."
@@ -92,7 +92,7 @@ def notify_comment(doc, method=None):
 def clean_comment_content(content, mentions=None):
 	"""
 	Cleans HTML from comment content, specifically handling Quill mentions.
-	Bolds @mentions for Google Chat in a robust way.
+	Bolds @mentions for Google Chat cards using <b> tags.
 	"""
 	import re
 	from frappe.utils import strip_html, get_fullname
@@ -100,10 +100,16 @@ def clean_comment_content(content, mentions=None):
 	if not content:
 		return ""
 	
-	# 1. Pre-cleaning malformed HTML fragments
+	# 1. Pre-cleaning malformed HTML fragments and handling newlines
+	# Replace block-level tags and breaks with newlines
+	# We use \n\n for block endings because GChat cards often collapse single \n
+	content = re.sub(r'<(br|/p|/div|/li|/h[1-6])[^>]*>', '\n\n', content)
+	
 	# Remove attributes specifically (both double and single quoted)
 	content = re.sub(r'[a-z-]+=(["\'])[^\1]*?\1', '', content)
 	# Remove stray tag starts/ends that look like technical artifacts (e.g. Name" >)
+	# Use a more conservative regex that won't eat into other text
+	content = re.sub(r'\s*[a-zA-Z0-9_-]+="[^"]*"[^>]*>', ' ', content)
 	content = re.sub(r'[^<>\n]*"[^>]*>', ' ', content)
 	content = re.sub(r'&nbsp;', ' ', content)
 	
@@ -131,26 +137,31 @@ def clean_comment_content(content, mentions=None):
 	processed_text = clean
 	
 	# Pass A: Bold exactly the system-identified mentioned full names
-	# This avoids over-bolding subsequent capitalized words in the comment.
+	# This covers multi-word names like "Midhun George Geevar"
 	for name in sorted_names:
 		if name:
 			# Only match if NOT preceded by __BC_START__
-			# Use word boundary or punctuation boundary check
+			# Use word boundary OR punctuation check for the end
 			pattern = rf'(?<!__BC_START__)@{re.escape(name)}(?=\W|$)'
 			processed_text = re.sub(pattern, bold_placeholder(f"@{name}"), processed_text)
 	
 	# Pass B: Fallback for any remaining single-word @mentions
+	# (Safety fallback for manual user typing or unresolved mentions)
+	# We don't greedily capture multi-word here to avoid bolding sentence starts.
 	processed_text = re.sub(r'(?<!__BC_START__)(@[A-Za-z0-9._-]+)', lambda m: bold_placeholder(m.group(0)), processed_text)
 	
 	# Cleanup nested or redundant placeholders (Safety)
 	processed_text = processed_text.replace("__BC_START____BC_START__", "__BC_START__")
 	processed_text = processed_text.replace("__BC_END____BC_END__", "__BC_END__")
 	
-	# Final conversion to Google Chat stars
-	clean = processed_text.replace("__BC_START__", "*").replace("__BC_END__", "*")
+	# Final conversion to Google Chat HTML bold tags
+	clean = processed_text.replace("__BC_START__", "<b>").replace("__BC_END__", "</b>")
 	
 	# 4. Final safety cleanup
-	# Remove any leftover corrupted tag fragments (stray > or ")
+	# Collapse excessive newlines (3+ -> 2)
+	clean = re.sub(r'\n{3,}', '\n\n', clean)
+	
+	# Remove leftover quotes, brackets, or corrupted tag fragments at start/end
 	clean = re.sub(r'^[">\'\s]+', '', clean)
 	clean = re.sub(r'[">\'\s]+$', '', clean)
 	
