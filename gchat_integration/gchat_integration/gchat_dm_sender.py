@@ -77,11 +77,8 @@ def get_user_impersonation_creds(target_email):
 		
 		# Impersonate the target user
 		return creds.with_subject(target_email)
-	except Exception as e:
-		frappe.log_error(
-			f"Failed to create impersonation credentials for {target_email}: {str(e)}",
-			"Google Chat DM - Credential Error"
-		)
+	except Exception:
+		frappe.logger().error(f"Google Chat DM - Failed to create impersonation credentials for {target_email}", exc_info=True)
 		raise
 
 
@@ -100,11 +97,8 @@ def get_bot_creds():
 			creds_dict,
 			scopes=SCOPE_BOT
 		)
-	except Exception as e:
-		frappe.log_error(
-			f"Failed to create bot credentials: {str(e)}",
-			"Google Chat DM - Credential Error"
-		)
+	except Exception:
+		frappe.logger().error("Google Chat DM - Failed to create bot credentials", exc_info=True)
 		raise
 
 
@@ -146,16 +140,10 @@ def get_or_create_dm_space(user_email):
 	
 	except HttpError as e:
 		error_content = e.content.decode() if e.content else str(e)
-		frappe.log_error(
-			f"Google Chat DM API Error for {user_email}: {error_content}\n\nCheck if Domain-wide Delegation is enabled and scopes are correct.",
-			"Google Chat DM - API Error"
-		)
+		frappe.logger().error(f"Google Chat DM API Error for {user_email}: {error_content}")
 		return None
-	except Exception as e:
-		frappe.log_error(
-			f"Google Chat DM Unexpected error setting up DM space for {user_email}: {str(e)}",
-			"Google Chat DM - Setup Error"
-		)
+	except Exception:
+		frappe.logger().error(f"Google Chat DM Unexpected error setting up DM space for {user_email}", exc_info=True)
 		return None
 
 
@@ -180,21 +168,15 @@ def send_dm_to_user(user_email, message_text, card=None):
 	space_id = get_or_create_dm_space(user_email)
 	
 	if not space_id:
-		frappe.log_error(
-			f"Could not establish DM space with {user_email}",
-			"Google Chat DM - Send Failed"
-		)
+		frappe.logger().error(f"Google Chat DM - Could not establish DM space with {user_email}")
 		return None
 	
 	# Step 2: Get bot credentials and refresh token
 	try:
 		creds = get_bot_creds()
 		creds.refresh(Request())
-	except Exception as e:
-		frappe.log_error(
-			f"Failed to refresh bot credentials: {str(e)}",
-			"Google Chat DM - Auth Error"
-		)
+	except Exception:
+		frappe.logger().error("Google Chat DM - Failed to refresh bot credentials", exc_info=True)
 		return None
 	
 	# Step 3: Prepare the message payload
@@ -216,16 +198,10 @@ def send_dm_to_user(user_email, message_text, card=None):
 			frappe.logger().info(f"Successfully sent DM to {user_email}")
 			return response.json()
 		else:
-			frappe.log_error(
-				f"Failed to send DM to {user_email} ({response.status_code}): {response.text}",
-				"Google Chat DM - Send Failed"
-			)
+			frappe.logger().error(f"Google Chat DM - Failed to send DM to {user_email} ({response.status_code}): {response.text}")
 			return None
-	except Exception as e:
-		frappe.log_error(
-			f"Request error while sending DM to {user_email}: {str(e)}",
-			"Google Chat DM - Request Error"
-		)
+	except Exception:
+		frappe.logger().error(f"Google Chat DM - Request error while sending DM to {user_email}", exc_info=True)
 		return None
 
 
@@ -257,11 +233,8 @@ def send_dm_to_multiple_users(user_emails, message_text, card=None):
 				results["success"].append(email)
 			else:
 				results["failed"].append(email)
-		except Exception as e:
-			frappe.log_error(
-				f"Exception sending DM to {email}: {str(e)}",
-				"Google Chat DM - Batch Send Error"
-			)
+		except Exception:
+			frappe.logger().error(f"Google Chat DM - Exception sending DM to {email}", exc_info=True)
 			results["failed"].append(email)
 	
 	frappe.logger().info(

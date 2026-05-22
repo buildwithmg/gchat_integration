@@ -78,8 +78,8 @@ def setup_integrations_workspace():
             
     except frappe.DoesNotExistError:
         pass
-    except Exception as e:
-        frappe.log_error(f"Failed to setup integrations workspace: {str(e)}")
+    except Exception:
+        frappe.logger().error("Failed to setup integrations workspace", exc_info=True)
     
     # Also add Google Chat Settings
     setup_google_chat_settings_link()
@@ -134,5 +134,5 @@ def setup_google_chat_settings_link():
         
     except frappe.DoesNotExistError:
         pass
-    except Exception as e:
-        frappe.log_error(f"Failed to add Google Chat Settings to workspace: {str(e)}")
+    except Exception:
+        frappe.logger().error("Failed to add Google Chat Settings to workspace", exc_info=True)

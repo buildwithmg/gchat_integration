@@ -6,7 +6,6 @@ import json
 import requests
 
 import frappe
-from frappe import _
 from frappe.model.document import Document
 from frappe.utils import get_url_to_form
 
@@ -97,7 +96,7 @@ def send_google_chat_message(webhook_url, message, reference_doctype, reference_
 	)
 
 	if not gchat_url:
-		frappe.log_error(f"Webhook URL not found for: {webhook_url}", _("Google Chat Webhook Error"))
+		frappe.logger().error(f"Google Chat Webhook URL not found for: {webhook_url}")
 		return "error"
 
 	# Convert HTML message to Google Chat text format
@@ -149,10 +148,10 @@ def send_google_chat_message(webhook_url, message, reference_doctype, reference_
 		r = requests.post(gchat_url, json=data, headers={"Content-Type": "application/json; charset=UTF-8"})
 
 		if not r.ok:
-			frappe.log_error(f"Status: {r.status_code}\nResponse: {r.text}\nPayload: {json.dumps(data)}", _("Google Chat Webhook Error"))
+			frappe.logger().error(f"Google Chat Webhook Error - Status: {r.status_code} Response: {r.text}")
 			return "error"
 
 		return "success"
-	except Exception as e:
-		frappe.log_error(f"Exception: {str(e)}\nWebhook: {webhook_url}\nPayload: {json.dumps(data)}", _("Google Chat Webhook Error"))
+	except Exception:
+		frappe.logger().error(f"Google Chat Webhook Exception for {webhook_url}", exc_info=True)
 		return "error"

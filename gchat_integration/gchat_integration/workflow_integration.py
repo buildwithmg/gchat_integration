@@ -105,5 +105,5 @@ def notify_workflow_action(doc, method=None):
 				queue="short"
 			)
 
-	except Exception as e:
-		frappe.log_error(f"Failed to send Google Chat Workflow Notification: {str(e)}", "Google Chat Integration")
+	except Exception:
+		frappe.logger().error("Google Chat Workflow Notification Error", exc_info=True)

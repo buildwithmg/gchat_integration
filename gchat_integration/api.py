@@ -1,5 +1,4 @@
 import frappe
-from frappe import _
 import json
 
 @frappe.whitelist(allow_guest=True)
@@ -12,17 +11,17 @@ def handle_google_chat_event():
         # Check if bot is enabled
         from gchat_integration.gchat_integration.doctype.google_chat_settings.google_chat_settings import is_bot_enabled
         if not is_bot_enabled():
-            frappe.log_error("Google Chat Bot is not enabled in settings", "Google Chat Integration")
+            frappe.logger().info("Google Chat Bot is not enabled in settings")
             return {"text": "Bot integration is not enabled"}
         
         if frappe.request.method != "POST":
             return
 
-        data = frappe.get_request_header("Content-Type")
-        if "application/json" not in data:
-            data = json.loads(frappe.request.get_data())
-        else:
+        content_type = frappe.get_request_header("Content-Type") or ""
+        if "application/json" in content_type:
             data = frappe.request.json
+        else:
+            data = json.loads(frappe.request.get_data())
 
         if not data:
             return
@@ -41,7 +40,7 @@ def handle_google_chat_event():
             return {"text": "Unknown event type"}
 
     except Exception as e:
-        frappe.log_error(f"Google Chat Event Error: {str(e)}", "Google Chat Integration")
+        frappe.logger().error(f"Google Chat Event Error: {str(e)}")
         return {"text": "Error processing event"}
 
 def on_added_to_space(data):

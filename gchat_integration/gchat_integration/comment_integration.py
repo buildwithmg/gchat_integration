@@ -85,8 +85,8 @@ def notify_comment(doc, method=None):
 				queue="short"
 			)
 
-	except Exception as e:
-		frappe.log_error(f"Failed to send Google Chat Comment Notification: {str(e)}", "Google Chat Integration")
+	except Exception:
+		frappe.logger().error("Google Chat Comment Notification Error", exc_info=True)
 
 
 def clean_comment_content(content, mentions=None):

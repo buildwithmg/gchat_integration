@@ -207,11 +207,9 @@ doc_events = {
 
 # Extend DocType Class
 # ------------------------------
-#
-# Specify custom mixins to extend the standard doctype controller.
-# extend_doctype_class = {
-# 	"Task": "gchat_integration.custom.task.CustomTaskMixin"
-# }
+extend_doctype_class = {
+	"Notification": "gchat_integration.gchat_integration.notification_extension.CustomNotificationMixin"
+}
 
 # Overriding Methods
 # ------------------------------
@@ -238,7 +236,7 @@ doc_events = {
 
 # Request Events
 # ----------------
-before_request = ["gchat_integration.gchat_integration.notification_extension.extend_notification"]
+before_request = ["gchat_integration.gchat_integration.notification_extension.patch_verify_request"]
 # after_request = ["gchat_integration.utils.after_request"]
 
 # Migrate

@@ -139,8 +139,8 @@ def update_notification_channel_options():
 				)
 				
 				frappe.clear_cache(doctype="Notification")
-	except Exception as e:
-		frappe.log_error(f"Error updating Notification channel options: {str(e)}")
+	except Exception:
+		frappe.logger().error("Error updating Notification channel options", exc_info=True)
 
 
 def setup_notification_extension():
@@ -148,6 +148,6 @@ def setup_notification_extension():
 	try:
 		from gchat_integration.gchat_integration.notification_extension import extend_notification
 		extend_notification()
-	except Exception as e:
-		frappe.log_error(f"Error setting up notification extension: {str(e)}")
+	except Exception:
+		frappe.logger().error("Error setting up notification extension", exc_info=True)
 
