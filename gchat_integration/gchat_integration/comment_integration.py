@@ -29,18 +29,13 @@ def notify_comment(doc, method=None):
 		# Extract mentions (@user)
 		mentions = extract_mentions(doc.content or "")
 		
-		# Recipients to notify
+		# Recipients to notify: only users explicitly @mentioned in the comment
 		recipients = set()
 		if mentions:
 			for mention in mentions:
 				# mention is usually the user ID (email)
 				if mention != frappe.session.user:
 					recipients.add(mention)
-		
-		# Optionally notify document owner if they are not the one who commented
-		ref_doc_owner = frappe.db.get_value(doc.reference_doctype, doc.reference_name, "owner")
-		if ref_doc_owner and ref_doc_owner != frappe.session.user and "@" in ref_doc_owner:
-			recipients.add(ref_doc_owner)
 
 		if not recipients:
 			return

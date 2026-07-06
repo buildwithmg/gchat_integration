@@ -12,6 +12,15 @@ class CustomNotificationMixin:
 	def send_notification_by_channel(self, doc, context):
 		"""Extended method to support Google Chat channel."""
 		if self.channel == "Google Chat":
+			from gchat_integration.gchat_integration.doctype.google_chat_settings.google_chat_settings import (
+				is_bot_enabled,
+			)
+
+			if not is_bot_enabled():
+				if self.send_system_notification:
+					self.create_system_notification(doc, context)
+				return
+
 			try:
 				frappe.logger().info(f"Processing Google Chat notification for: {self.name}")
 				self.send_a_google_chat_msg(doc, context)
